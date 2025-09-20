@@ -1,0 +1,8 @@
+/Windows/Lab1/StaticNumber/.vs
+/Windows/Lab1/StaticNumber/NumberLibrary/x64
+/Windows/Lab1/StaticNumber/NumberClient/x64
+*.vcxproj
+*.filters
+*.user
+*.pdb
+*.idb

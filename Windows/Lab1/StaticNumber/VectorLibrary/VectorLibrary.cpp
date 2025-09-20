@@ -40,32 +40,3 @@ Vector Vector::operator-(const Vector& other) const
 
 const Vector Vector::zero(Number(0.0), Number(0.0));
 const Vector Vector::one(Number(1.0), Number(1.0));
-
-//Vector* createVector(const Number& x, const Number& y) {
-//	return new Vector(x, y);
-//}
-//
-//void deleteVector(Vector* vec) {
-//	delete vec;
-//}
-//
-//Number getVectorX(const Vector* vec) {
-//	return vec->getX();
-//}
-//
-//Number getVectorY(const Vector* vec) {
-//	return vec->getY();
-//}
-//
-//Number getVectorRadius(const Vector* vec) {
-//	return vec->getRadius();
-//}
-//
-//Number getVectorAngle(const Vector* vec) {
-//	return vec->getAngle();
-//}
-//
-//Vector* addVectors(const Vector* vec1, const Vector* vec2) {
-//	Vector* result = new Vector(*vec1 + *vec2);
-//	return result;
-//}

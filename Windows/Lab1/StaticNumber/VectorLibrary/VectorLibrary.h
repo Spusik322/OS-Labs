@@ -30,11 +30,3 @@ public:
 	static const Vector zero;
 	static const Vector one;
 };
-
-//extern "C" VECTORLIBRARY_API Vector* createVector(const Number& x, const Number& y);
-//extern "C" VECTORLIBRARY_API void deleteVector(Vector* vec);
-//extern "C" VECTORLIBRARY_API Number getVectorX(const Vector* vec);
-//extern "C" VECTORLIBRARY_API Number getVectorY(const Vector* vec);
-//extern "C" VECTORLIBRARY_API Number getVectorRadius(const Vector* vec);
-//extern "C" VECTORLIBRARY_API Number getVectorAngle(const Vector* vec);
-//extern "C" VECTORLIBRARY_API Vector* addVectors(const Vector* vec1, const Vector* vec2);

@@ -6,3 +6,8 @@
 *.user
 *.pdb
 *.idb
+*.obj
+*.tlog
+*.log
+*.ilk
+*.recipe

@@ -32,13 +32,23 @@ namespace NumberLibrary
 	const Number Number::one(1.0);
 
 	std::ostream& operator<<(std::ostream& os, const Number& num) {
-		os << num.get();
+		os << num.value;
 		return os;
 	}
 
 	std::istream& operator>>(std::istream& is, Number& num) {
 		is >> num.value;
 		return is;
+	}
+
+	Number sqrt(const Number& num)
+	{
+		return Number(std::sqrt(num.get()));
+	}
+
+	Number arctan(const Number& num)
+	{
+		return Number(std::atan(num.get()));
 	}
 
 	Number createNumber(double value) {

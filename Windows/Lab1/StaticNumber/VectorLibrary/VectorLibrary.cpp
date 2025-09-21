@@ -2,7 +2,6 @@
 #include <utility>
 #include <limits.h>
 #include "VectorLibrary.h"
-#include <cmath>
 
 
 Vector::Vector() : x(createNumber(0.0)), y(createNumber(0.0)) {}
@@ -17,7 +16,7 @@ Number Vector::getY() const {
 }
 
 Number Vector::getRadius() const {
-	return createNumber(sqrt(x.get() * x.get() + y.get() * y.get()));
+	return sqrt(x * x + y * y);
 }
 
 Number Vector::getAngle() const
@@ -25,7 +24,7 @@ Number Vector::getAngle() const
 	if (x.get() == 0.0 && y.get() == 0.0) {
 		return Number(0.0);
 	}
-	return createNumber(atan2(y.get(), x.get()));
+	return arctan(y / x);
 }
 
 Vector Vector::operator+(const Vector& other) const

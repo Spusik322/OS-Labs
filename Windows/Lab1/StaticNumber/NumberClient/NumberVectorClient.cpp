@@ -18,6 +18,13 @@ int main()
         std::cout << "a * b = " << (a * b) << std::endl;
         std::cout << "a / b = " << (a / b) << std::endl;
 
+        Number x = createNumber(9.0);
+        Number y = sqrt(x);                // 3.0
+        Number z = arctan(createNumber(1)); // π/4 ≈ 0.785398
+
+        std::cout << "sqrt(9)   = " << y << std::endl;
+        std::cout << "arctan(1) = " << z << std::endl;
+
         Number c;
         std::cout << "Enter a number: ";
         std::cin >> c;
@@ -32,7 +39,7 @@ int main()
         std::cout << e.what() << std::endl;
     }
     Number x1 = createNumber(3.0);
-    Number y1 = createNumber(3.0);
+    Number y1 = createNumber(4.0);
     Number x2 = createNumber(1.0);
     Number y2 = createNumber(2.0);
         

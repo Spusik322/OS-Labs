@@ -56,10 +56,9 @@ int main()
 
     Number radius = v1.getRadius();
     Number angle = v1.getAngle();
-    Number angle1 = Number(v1.getAngle().get() * 180 / 3.14159265358979323846);
+ 
     std::cout << "Vector 1 radius: " << radius << std::endl;
-    std::cout << "Vector 1 angle: " << angle << " in radians" << std::endl;
-    std::cout << "Vector 1 angle: " << angle1 << " in degrees" << std::endl;
+    std::cout << "Vector 1 angle: " << angle << " in degrees" << std::endl;
         
     Vector sum = v1 + v2;
     Vector div = v1 - v2;

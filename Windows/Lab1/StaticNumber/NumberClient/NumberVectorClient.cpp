@@ -19,8 +19,8 @@ int main()
         std::cout << "a / b = " << (a / b) << std::endl;
 
         Number x = createNumber(9.0);
-        Number y = sqrt(x);                // 3.0
-        Number z = arctan(createNumber(1)); // π/4 ≈ 0.785398
+        Number y = sqrt(x);              
+        Number z = arctan(createNumber(1)); 
 
         std::cout << "sqrt(9)   = " << y << std::endl;
         std::cout << "arctan(1) = " << z << std::endl;

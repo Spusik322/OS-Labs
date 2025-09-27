@@ -1,0 +1,5 @@
+/home/Spusik/Documents/Github/OS-Labs/Linux/Lab1/build/CMakeFiles/Number.dir
+/home/Spusik/Documents/Github/OS-Labs/Linux/Lab1/build/CMakeFiles/Vector.dir
+/home/Spusik/Documents/Github/OS-Labs/Linux/Lab1/build/CMakeFiles/client.dir
+/home/Spusik/Documents/Github/OS-Labs/Linux/Lab1/build/CMakeFiles/edit_cache.dir
+/home/Spusik/Documents/Github/OS-Labs/Linux/Lab1/build/CMakeFiles/rebuild_cache.dir

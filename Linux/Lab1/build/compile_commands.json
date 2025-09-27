@@ -1,0 +1,20 @@
+[
+{
+  "directory": "/home/Spusik/Documents/Github/OS-Labs/Linux/Lab1/build",
+  "command": "/usr/bin/c++   -g -std=gnu++11 -fPIC -o CMakeFiles/Number.dir/NumberLibrary.cpp.o -c /home/Spusik/Documents/Github/OS-Labs/Linux/Lab1/NumberLibrary.cpp",
+  "file": "/home/Spusik/Documents/Github/OS-Labs/Linux/Lab1/NumberLibrary.cpp",
+  "output": "CMakeFiles/Number.dir/NumberLibrary.cpp.o"
+},
+{
+  "directory": "/home/Spusik/Documents/Github/OS-Labs/Linux/Lab1/build",
+  "command": "/usr/bin/c++ -DVector_EXPORTS -I/home/Spusik/Documents/Github/OS-Labs/Linux/Lab1 -g -std=gnu++11 -fPIC -o CMakeFiles/Vector.dir/VectorLibrary.cpp.o -c /home/Spusik/Documents/Github/OS-Labs/Linux/Lab1/VectorLibrary.cpp",
+  "file": "/home/Spusik/Documents/Github/OS-Labs/Linux/Lab1/VectorLibrary.cpp",
+  "output": "CMakeFiles/Vector.dir/VectorLibrary.cpp.o"
+},
+{
+  "directory": "/home/Spusik/Documents/Github/OS-Labs/Linux/Lab1/build",
+  "command": "/usr/bin/c++  -I/home/Spusik/Documents/Github/OS-Labs/Linux/Lab1 -g -std=gnu++11 -o CMakeFiles/client.dir/NumberVectorClient.cpp.o -c /home/Spusik/Documents/Github/OS-Labs/Linux/Lab1/NumberVectorClient.cpp",
+  "file": "/home/Spusik/Documents/Github/OS-Labs/Linux/Lab1/NumberVectorClient.cpp",
+  "output": "CMakeFiles/client.dir/NumberVectorClient.cpp.o"
+}
+]

@@ -1,0 +1,3 @@
+/home/Spusik/Documents/Github/OS-Labs/Linux/Lab2/build/CMakeFiles/multiply.dir
+/home/Spusik/Documents/Github/OS-Labs/Linux/Lab2/build/CMakeFiles/edit_cache.dir
+/home/Spusik/Documents/Github/OS-Labs/Linux/Lab2/build/CMakeFiles/rebuild_cache.dir

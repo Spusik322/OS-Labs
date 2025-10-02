@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/home/Spusik/Documents/Github/OS-Labs/Linux/Lab2/build",
+  "command": "/usr/bin/g++   -g -std=gnu++11 -o CMakeFiles/multiply.dir/tread.cpp.o -c /home/Spusik/Documents/Github/OS-Labs/Linux/Lab2/tread.cpp",
+  "file": "/home/Spusik/Documents/Github/OS-Labs/Linux/Lab2/tread.cpp",
+  "output": "CMakeFiles/multiply.dir/tread.cpp.o"
+}
+]

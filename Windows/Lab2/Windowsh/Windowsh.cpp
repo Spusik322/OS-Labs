@@ -24,7 +24,9 @@ long long multiplySimple(const std::vector<std::vector<int>>& A,
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             int sum = 0;
-            for (int k = 0; k < n; ++k) sum += A[i][k] * B[k][j];
+            for (int k = 0; k < n; ++k) {
+                sum += A[i][k] * B[k][j];
+            }
             C[i][j] = sum;
         }
     }
@@ -41,7 +43,9 @@ DWORD WINAPI multiplyBlock(LPVOID param) {
     for (int i = data->startRow; i < endRow; ++i) {
         for (int j = data->startCol; j < endCol; ++j) {
             int sum = 0;
-            for (int k = 0; k < n; ++k) sum += (*data->A)[i][k] * (*data->B)[k][j];
+            for (int k = 0; k < n; ++k) {
+                sum += (*data->A)[i][k] * (*data->B)[k][j];
+            }
             (*data->C)[i][j] = sum;
         }
     }

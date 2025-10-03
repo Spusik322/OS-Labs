@@ -6,5 +6,5 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Threads REQUIRED)
 
-add_executable(multiply tread.cpp)
+add_executable(multiply ptread.cpp)
 target_link_libraries(multiply Threads::Threads)

@@ -1,3 +1,3 @@
-C:/Users/Spusik/Documents/Github/OS-Labs/Windows/Lab2/Windowsh/build/CMakeFiles/Windowsh.dir
-C:/Users/Spusik/Documents/Github/OS-Labs/Windows/Lab2/Windowsh/build/CMakeFiles/ALL_BUILD.dir
-C:/Users/Spusik/Documents/Github/OS-Labs/Windows/Lab2/Windowsh/build/CMakeFiles/ZERO_CHECK.dir
+C:/Users/Spusik/Documents/GitHub/OS-Labs/Windows/Lab2/Windowsh/build/CMakeFiles/Windowsh.dir
+C:/Users/Spusik/Documents/GitHub/OS-Labs/Windows/Lab2/Windowsh/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/Spusik/Documents/GitHub/OS-Labs/Windows/Lab2/Windowsh/build/CMakeFiles/ZERO_CHECK.dir

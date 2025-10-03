@@ -1,0 +1,118 @@
+#include <iostream>
+#include <vector>
+#include <thread>
+#include <chrono>
+#include <algorithm>
+#include <fstream>
+
+long long multiplySimple(const std::vector<std::vector<int>>& A,
+                         const std::vector<std::vector<int>>& B,
+                         std::vector<std::vector<int>>& C) {
+    int n = static_cast<int>(A.size());
+    auto start = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < n; ++j) {
+            int sum = 0;
+            for (int k = 0; k < n; ++k) sum += A[i][k] * B[k][j];
+            C[i][j] = sum;
+        }
+    auto end = std::chrono::high_resolution_clock::now();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+}
+
+void multiplyBlock(const std::vector<std::vector<int>>& A,
+                   const std::vector<std::vector<int>>& B,
+                   std::vector<std::vector<int>>& C,
+                   int startRow, int endRow,
+                   int startCol, int endCol) 
+{
+    int n = static_cast<int>(A.size());
+    int rEnd = std::min(endRow, n);
+    int cEnd = std::min(endCol, n);
+
+    for (int i = startRow; i < rEnd; ++i) {
+        for (int j = startCol; j < cEnd; ++j) {
+            int sum = 0;
+            for (int k = 0; k < n; ++k)
+                sum += A[i][k] * B[k][j];
+            C[i][j] = sum;
+        }
+    }
+}
+
+int main() {
+    const int n = 96;
+    const int blockSize = 56;
+
+    std::vector<std::vector<int>> A(n, std::vector<int>(n, 2));
+    std::vector<std::vector<int>> B(n, std::vector<int>(n, 2));
+    std::vector<std::vector<int>> C_simple(n, std::vector<int>(n, 0));
+    std::vector<std::vector<int>> C_parallel(n, std::vector<int>(n, 0));
+
+    long long simpleTime = multiplySimple(A, B, C_simple);
+    std::cout << "Matrix " << n << "x" << n << " - Simple: " << simpleTime << " ms\n";
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    int rowBlocks = (n + blockSize - 1) / blockSize;
+    int colBlocks = (n + blockSize - 1) / blockSize;
+
+    std::vector<std::thread> threads;
+    threads.reserve(rowBlocks * colBlocks);
+
+    int threadsCreated = 0;
+    for (int bi = 0; bi < rowBlocks; ++bi) {
+        for (int bj = 0; bj < colBlocks; ++bj) {
+            int startRow = bi * blockSize;
+            int endRow = std::min((bi + 1) * blockSize, n);
+            int startCol = bj * blockSize;
+            int endCol = std::min((bj + 1) * blockSize, n);
+            threads.emplace_back(multiplyBlock,
+                                 std::cref(A), std::cref(B), std::ref(C_parallel),
+                                 startRow, endRow, startCol, endCol);
+            ++threadsCreated;
+        }
+    }
+
+    for (auto &t : threads) {
+        if (t.joinable()) {
+            t.join();
+        }
+    } 
+
+    auto parallelTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::high_resolution_clock::now() - start).count();
+
+    std::cout << "Parallel (block " << blockSize << " ,threads " << threadsCreated << "): "
+              << parallelTime << " ms\n";
+    std::cout << "Speedup: " << (double)simpleTime / parallelTime << "x\n";
+
+    bool correct = true;
+    for (int i = 0; i < n && correct; ++i)
+        for (int j = 0; j < n && correct; ++j)
+            if (C_simple[i][j] != C_parallel[i][j]) {
+                correct = false;
+                std::cout << "Mismatch at (" << i << "," << j << "): "
+                          << C_simple[i][j] << " vs " << C_parallel[i][j] << "\n";
+            }
+
+    std::cout << "Results are " << (correct ? "CORRECT" : "INCORRECT") << std::endl;
+
+    std::ofstream resultsFile("../results.txt", std::ios_base::app);
+    if (resultsFile.is_open()) {
+        resultsFile << "Matrix: " << n << "x" << n << std::endl
+                    << "BlockSize: " << blockSize << std::endl
+                    << "Threads: " << threadsCreated << std::endl
+                    << "SimpleTime: " << simpleTime << "ms" << std::endl
+                    << "ParallelTime: " << parallelTime << "ms" << std::endl
+                    << "Speedup: " << (double)simpleTime / parallelTime << "x" << std::endl
+                    << "Correct: " << (correct ? "YES" : "NO") << std::endl
+                    << std::endl;
+        resultsFile.close();
+        std::cout << "Results saved to results.txt" << std::endl;
+    } else {
+        std::cerr << "Failed to open results.txt for writing" << std::endl;
+    }
+
+    return 0;
+}

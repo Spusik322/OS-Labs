@@ -4,6 +4,7 @@
 #include <chrono>
 #include <windows.h>
 #include <algorithm>
+#include <fstream>
 
 struct ThreadData {
     const std::vector<std::vector<int>>* A;
@@ -50,8 +51,8 @@ DWORD WINAPI multiplyBlock(LPVOID param) {
 }
 
 int main() {
-    const int n = 500;
-    const int blockSize = 100;
+    const int n = 1024;
+    const int blockSize = 256;
     int treads = 0;
 
     std::vector<std::vector<int>> A(n, std::vector<int>(n, 2));
@@ -131,5 +132,21 @@ int main() {
     }
 
     std::cout << "Results are " << (correct ? "CORRECT" : "INCORRECT") << std::endl;
+
+    std::ofstream resultsFile("../../results.txt", std::ios_base::app);
+    if (resultsFile.is_open()) {
+        resultsFile << "Matrix: " << n << "x" << n << std::endl
+                    << "BlockSize: " << blockSize << std::endl
+                    << "Threads: " << treads << std::endl
+                    << "SimpleTime: " << simpleTime << "ms" << std::endl
+                    << "ParallelTime: " << parallelTime << "ms" << std::endl
+                    << "Speedup: " << (double)simpleTime / parallelTime << "x" << std::endl
+                    << "Correct: " << (correct ? "YES" : "NO") << std::endl
+                    << std::endl;
+        resultsFile.close();
+        std::cout << "Results saved to results.txt" << std::endl;
+    } else {
+        std::cerr << "Failed to open results.txt for writing" << std::endl;
+    }
     return 0;
 }

@@ -1,102 +1,128 @@
-Matrix: 16x16
+Matrix: 5x5
 BlockSize: 1
-Threads: 256
+Threads: 125
 SimpleTime: 0ms
-ParallelTime: 7ms
+ParallelTime: 3ms
 Speedup: 0x
 Correct: YES
 
-Matrix: 16x16
-BlockSize: 4
-Threads: 16
+Matrix: 5x5
+BlockSize: 5
+Threads: 1
 SimpleTime: 0ms
 ParallelTime: 0ms
 Speedup: nanx
 Correct: YES
 
-Matrix: 100x100
+Matrix: 64x64
 BlockSize: 1
-Threads: 10000
-SimpleTime: 4ms
-ParallelTime: 329ms
-Speedup: 0.0121581x
+Threads: 262144
+SimpleTime: 1ms
+ParallelTime: 31225ms
+Speedup: 3.20256e-05x
 Correct: YES
 
-Matrix: 100x100
-BlockSize: 10
-Threads: 100
-SimpleTime: 4ms
+Matrix: 64x64
+BlockSize: 16
+Threads: 64
+SimpleTime: 1ms
 ParallelTime: 3ms
+Speedup: 0.333333x
+Correct: YES
+
+Matrix: 64x64
+BlockSize: 32
+Threads: 8
+SimpleTime: 1ms
+ParallelTime: 1ms
+Speedup: 1x
+Correct: YES
+
+Matrix: 128x128
+BlockSize: 32
+Threads: 64
+SimpleTime: 8ms
+ParallelTime: 11ms
+Speedup: 0.727273x
+Correct: YES
+
+Matrix: 128x128
+BlockSize: 64
+Threads: 8
+SimpleTime: 8ms
+ParallelTime: 6ms
 Speedup: 1.33333x
 Correct: YES
 
-Matrix: 100x100
-BlockSize: 25
-Threads: 16
-SimpleTime: 4ms
-ParallelTime: 0ms
-Speedup: infx
+Matrix: 256x256
+BlockSize: 64
+Threads: 64
+SimpleTime: 66ms
+ParallelTime: 46ms
+Speedup: 1.43478x
 Correct: YES
 
-Matrix: 512x512
-BlockSize: 36
-Threads: 225
-SimpleTime: 550ms
-ParallelTime: 49ms
-Speedup: 11.2245x
-Correct: YES
-
-Matrix: 512x512
-BlockSize: 1
-Threads: 262144
-SimpleTime: 553ms
-ParallelTime: 32235ms
-Speedup: 0.0171553x
+Matrix: 256x256
+BlockSize: 128
+Threads: 8
+SimpleTime: 66ms
+ParallelTime: 27ms
+Speedup: 2.44444x
 Correct: YES
 
 Matrix: 512x512
 BlockSize: 64
-Threads: 64
+Threads: 512
 SimpleTime: 551ms
-ParallelTime: 49ms
-Speedup: 11.2449x
+ParallelTime: 329ms
+Speedup: 1.67477x
 Correct: YES
 
 Matrix: 512x512
 BlockSize: 128
-Threads: 16
-SimpleTime: 551ms
-ParallelTime: 64ms
-Speedup: 8.60938x
+Threads: 64
+SimpleTime: 547ms
+ParallelTime: 192ms
+Speedup: 2.84896x
+Correct: YES
+
+Matrix: 512x512
+BlockSize: 256
+Threads: 8
+SimpleTime: 557ms
+ParallelTime: 113ms
+Speedup: 4.9292x
+Correct: YES
+
+Matrix: 512x512
+BlockSize: 100
+Threads: 216
+SimpleTime: 549ms
+ParallelTime: 265ms
+Speedup: 2.0717x
 Correct: YES
 
 Matrix: 1024x1024
 BlockSize: 128
+Threads: 512
+SimpleTime: 4733ms
+ParallelTime: 1433ms
+Speedup: 3.30286x
+Correct: YES
+
+Matrix: 1024x1024
+BlockSize: 256
 Threads: 64
-SimpleTime: 4794ms
-ParallelTime: 412ms
-Speedup: 11.6359x
+SimpleTime: 4718ms
+ParallelTime: 752ms
+Speedup: 6.27394x
 Correct: YES
 
 Matrix: 1024x1024
-BlockSize: 256
-Threads: 16
-SimpleTime: 4727ms
-ParallelTime: 460ms
-Speedup: 10.2761x
+BlockSize: 32
+Threads: 32768
+SimpleTime: 4760ms
+ParallelTime: 5645ms
+Speedup: 0.843224x
 Correct: YES
-
-Matrix: 1024x1024
-BlockSize: 64
-Threads: 256
-SimpleTime: 4772ms
-ParallelTime: 379ms
-Speedup: 12.591x
-Correct: YES
-
-Matrix: 4096x4096
-BlockSize: 256
-Threads: 256
-ParallelTime: 37817ms
-Correct: NO
 

@@ -3,17 +3,33 @@
 #include <chrono>
 #include <algorithm>
 #include <fstream>
+#include <random>
 #include <pthread.h>
 
-struct BlockData {
+pthread_mutex_t result_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+struct ThreadData {
     const std::vector<std::vector<int>>* A;
     const std::vector<std::vector<int>>* B;
     std::vector<std::vector<int>>* C;
-    int startRow;
-    int endRow;
-    int startCol;
-    int endCol;
+    int blockRowA;
+    int blockColA;
+    int blockRowB;
+    int blockColB;
+    int blockSize;
 };
+
+void fillMatrixRandom(std::vector<std::vector<int>>& matrix, int minVal = 1, int maxVal = 10) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(minVal, maxVal);
+    
+    for (auto& row : matrix) {
+        for (auto& elem : row) {
+            elem = dis(gen);
+        }
+    }
+}
 
 long long multiplySimple(const std::vector<std::vector<int>>& A,
                          const std::vector<std::vector<int>>& B,
@@ -30,18 +46,35 @@ long long multiplySimple(const std::vector<std::vector<int>>& A,
     return std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 }
 
-void* multiplyBlock(void* arg) {
-    BlockData* data = static_cast<BlockData*>(arg);
+void* multiplyBlocks(void* arg) {
+    ThreadData* data = static_cast<ThreadData*>(arg);
     int n = static_cast<int>(data->A->size());
-    int rEnd = std::min(data->endRow, n);
-    int cEnd = std::min(data->endCol, n);
-
-    for (int i = data->startRow; i < rEnd; ++i) {
-        for (int j = data->startCol; j < cEnd; ++j) {
+    
+    int startRowA = data->blockRowA * data->blockSize;
+    int endRowA = std::min((data->blockRowA + 1) * data->blockSize, n);
+    int startColA = data->blockColA * data->blockSize;
+    int endColA = std::min((data->blockColA + 1) * data->blockSize, n);
+    
+    int startRowB = data->blockRowB * data->blockSize;
+    int endRowB = std::min((data->blockRowB + 1) * data->blockSize, n);
+    int startColB = data->blockColB * data->blockSize;
+    int endColB = std::min((data->blockColB + 1) * data->blockSize, n);
+    
+    for (int i = startRowA; i < endRowA; ++i) {
+        for (int j = startColB; j < endColB; ++j) {
             int sum = 0;
-            for (int k = 0; k < n; ++k)
-                sum += (*data->A)[i][k] * (*data->B)[k][j];
-            (*data->C)[i][j] = sum;
+            for (int k = 0; k < data->blockSize; ++k) {
+                int colA = startColA + k;
+                int rowB = startRowB + k;
+                
+                if (colA < endColA && rowB < endRowB) {
+                    sum += (*data->A)[i][colA] * (*data->B)[rowB][j];
+                }
+            }
+            
+            pthread_mutex_lock(&result_mutex);
+            (*data->C)[i][j] += sum;
+            pthread_mutex_unlock(&result_mutex);
         }
     }
 
@@ -50,44 +83,48 @@ void* multiplyBlock(void* arg) {
 }
 
 int main() {
-    const int n = 1024;
-    const int blockSize = 128;
+    const int n = 2048;
+    const int blockSize = 512;
 
-    std::vector<std::vector<int>> A(n, std::vector<int>(n, 2));
-    std::vector<std::vector<int>> B(n, std::vector<int>(n, 2));
+    std::vector<std::vector<int>> A(n, std::vector<int>(n));
+    std::vector<std::vector<int>> B(n, std::vector<int>(n));
     std::vector<std::vector<int>> C_simple(n, std::vector<int>(n, 0));
     std::vector<std::vector<int>> C_parallel(n, std::vector<int>(n, 0));
+
+    fillMatrixRandom(A, 1, 100);
+    fillMatrixRandom(B, 1, 100);
 
     long long simpleTime = multiplySimple(A, B, C_simple);
     std::cout << "Matrix " << n << "x" << n << " - Simple: " << simpleTime << " ms\n";
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    int rowBlocks = (n + blockSize - 1) / blockSize;
-    int colBlocks = (n + blockSize - 1) / blockSize;
-
+    int blocksPerDim = (n + blockSize - 1) / blockSize;
+    
     std::vector<pthread_t> threads;
-    threads.reserve(rowBlocks * colBlocks);
-
     int threadsCreated = 0;
-    for (int bi = 0; bi < rowBlocks; ++bi) {
-        for (int bj = 0; bj < colBlocks; ++bj) {
-            BlockData* data = new BlockData;
-            data->A = &A;
-            data->B = &B;
-            data->C = &C_parallel;
-            data->startRow = bi * blockSize;
-            data->endRow = std::min((bi + 1) * blockSize, n);
-            data->startCol = bj * blockSize;
-            data->endCol = std::min((bj + 1) * blockSize, n);
 
-            pthread_t thread;
-            if (pthread_create(&thread, nullptr, multiplyBlock, data) == 0) {
-                threads.push_back(thread);
-                ++threadsCreated;
-            } else {
-                std::cerr << "Failed to create thread for block (" << bi << "," << bj << ")\n";
-                delete data;
+    for (int i = 0; i < blocksPerDim; ++i) {
+        for (int j = 0; j < blocksPerDim; ++j) {
+            for (int k = 0; k < blocksPerDim; ++k) {
+                ThreadData* data = new ThreadData;
+                data->A = &A;
+                data->B = &B;
+                data->C = &C_parallel;
+                data->blockRowA = i;
+                data->blockColA = k;
+                data->blockRowB = k;
+                data->blockColB = j;
+                data->blockSize = blockSize;
+
+                pthread_t thread;
+                if (pthread_create(&thread, nullptr, multiplyBlocks, data) == 0) {
+                    threadsCreated++;
+                    threads.push_back(thread);
+                } else {
+                    std::cerr << "pthread_create failed for block (" << i << "," << j << "," << k << ")\n";
+                    delete data;
+                }
             }
         }
     }
@@ -130,5 +167,6 @@ int main() {
         std::cerr << "Failed to open results.txt for writing" << std::endl;
     }
 
+    pthread_mutex_destroy(&result_mutex);
     return 0;
 }

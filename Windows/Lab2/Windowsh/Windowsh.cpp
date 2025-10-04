@@ -5,16 +5,33 @@
 #include <windows.h>
 #include <algorithm>
 #include <fstream>
+#include <random>
+#include <mutex>
+
+std::mutex result_mutex;
 
 struct ThreadData {
     const std::vector<std::vector<int>>* A;
     const std::vector<std::vector<int>>* B;
     std::vector<std::vector<int>>* C;
-    int startRow;
-    int endRow;
-    int startCol;
-    int endCol;
+    int blockRowA;
+    int blockColA;
+    int blockRowB;
+    int blockColB;
+    int blockSize;
 };
+
+void fillMatrixRandom(std::vector<std::vector<int>>& matrix, int minVal = 1, int maxVal = 10) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(minVal, maxVal);
+    
+    for (auto& row : matrix) {
+        for (auto& elem : row) {
+            elem = dis(gen);
+        }
+    }
+}
 
 long long multiplySimple(const std::vector<std::vector<int>>& A,
     const std::vector<std::vector<int>>& B,
@@ -34,19 +51,34 @@ long long multiplySimple(const std::vector<std::vector<int>>& A,
     return std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 }
 
-DWORD WINAPI multiplyBlock(LPVOID param) {
+DWORD WINAPI multiplyBlocks(LPVOID param) {
     ThreadData* data = static_cast<ThreadData*>(param);
-    int n = (int)data->A->size();
-    int endRow = std::min(data->endRow, n);
-    int endCol = std::min(data->endCol, n);
-
-    for (int i = data->startRow; i < endRow; ++i) {
-        for (int j = data->startCol; j < endCol; ++j) {
+    int n = static_cast<int>(data->A->size());
+    
+    int startRowA = data->blockRowA * data->blockSize;
+    int endRowA = std::min((data->blockRowA + 1) * data->blockSize, n);
+    int startColA = data->blockColA * data->blockSize;
+    int endColA = std::min((data->blockColA + 1) * data->blockSize, n);
+    
+    int startRowB = data->blockRowB * data->blockSize;
+    int endRowB = std::min((data->blockRowB + 1) * data->blockSize, n);
+    int startColB = data->blockColB * data->blockSize;
+    int endColB = std::min((data->blockColB + 1) * data->blockSize, n);
+    
+    for (int i = startRowA; i < endRowA; ++i) {
+        for (int j = startColB; j < endColB; ++j) {
             int sum = 0;
-            for (int k = 0; k < n; ++k) {
-                sum += (*data->A)[i][k] * (*data->B)[k][j];
+            for (int k = 0; k < data->blockSize; ++k) {
+                int colA = startColA + k;
+                int rowB = startRowB + k;
+                
+                if (colA < endColA && rowB < endRowB) {
+                    sum += (*data->A)[i][colA] * (*data->B)[rowB][j];
+                }
             }
-            (*data->C)[i][j] = sum;
+            
+            std::lock_guard<std::mutex> lock(result_mutex);
+            (*data->C)[i][j] += sum;
         }
     }
 
@@ -56,54 +88,58 @@ DWORD WINAPI multiplyBlock(LPVOID param) {
 
 int main() {
     const int n = 1024;
-    const int blockSize = 256;
+    const int blockSize = 64;
     int treads = 0;
 
-    std::vector<std::vector<int>> A(n, std::vector<int>(n, 2));
-    std::vector<std::vector<int>> B(n, std::vector<int>(n, 2));
+    std::vector<std::vector<int>> A(n, std::vector<int>(n));
+    std::vector<std::vector<int>> B(n, std::vector<int>(n));
     std::vector<std::vector<int>> C_simple(n, std::vector<int>(n, 0));
     std::vector<std::vector<int>> C_parallel(n, std::vector<int>(n, 0));
+
+    fillMatrixRandom(A, 1, 100);
+    fillMatrixRandom(B, 1, 100);
 
     long long simpleTime = multiplySimple(A, B, C_simple);
     std::cout << "Matrix " << n << "x" << n << " - Simple: " << simpleTime << " ms\n";
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    int rowBlocks = (n + blockSize - 1) / blockSize;
-    int colBlocks = (n + blockSize - 1) / blockSize;
+    int blocksPerDim = (n + blockSize - 1) / blockSize;
 
     std::vector<HANDLE> handles;
-    handles.reserve(256);
 
     const DWORD MAX_WAIT = MAXIMUM_WAIT_OBJECTS;
 
-    for (int bi = 0; bi < rowBlocks; ++bi) {
-        for (int bj = 0; bj < colBlocks; ++bj) {
-            ThreadData* data = new ThreadData;
-            data->A = &A;
-            data->B = &B;
-            data->C = &C_parallel;
-            data->startRow = bi * blockSize;
-            data->endRow = std::min((bi + 1) * blockSize, n);
-            data->startCol = bj * blockSize;
-            data->endCol = std::min((bj + 1) * blockSize, n);
+    for (int i = 0; i < blocksPerDim; ++i) {
+        for (int j = 0; j < blocksPerDim; ++j) {
+            for (int k = 0; k < blocksPerDim; ++k) {
+                ThreadData* data = new ThreadData;
+                data->A = &A;
+                data->B = &B;
+                data->C = &C_parallel;
+                data->blockRowA = i;
+                data->blockColA = k;
+                data->blockRowB = k;
+                data->blockColB = j;
+                data->blockSize = blockSize;
 
-            HANDLE h = CreateThread(NULL, 0, multiplyBlock, data, 0, NULL);
-            if (h) {
-                treads++;
-                handles.push_back(h);
-            } else {
-                std::cerr << "CreateThread failed for block (" << bi << "," << bj << ")\n";
-                delete data;
-            }
-
-            if (handles.size() >= MAX_WAIT) {
-                DWORD waitRes = WaitForMultipleObjects((DWORD)handles.size(), handles.data(), TRUE, INFINITE);
-                if (waitRes == WAIT_FAILED) {
-                    std::cerr << "WaitForMultipleObjects failed\n";
+                HANDLE h = CreateThread(NULL, 0, multiplyBlocks, data, 0, NULL);
+                if (h) {
+                    treads++;
+                    handles.push_back(h);
+                } else {
+                    std::cerr << "CreateThread failed for block (" << i << "," << j << ")\n";
+                    delete data;
                 }
-                for (HANDLE hh : handles) CloseHandle(hh);
-                handles.clear();
+
+                if (handles.size() >= MAX_WAIT) {
+                    DWORD waitRes = WaitForMultipleObjects((DWORD)handles.size(), handles.data(), TRUE, INFINITE);
+                    if (waitRes == WAIT_FAILED) {
+                        std::cerr << "WaitForMultipleObjects failed\n";
+                    }
+                    for (HANDLE hh : handles) CloseHandle(hh);
+                    handles.clear();
+                }
             }
         }
     }

@@ -85,6 +85,9 @@
       <AdditionalLibraryDirectories>C:\Users\Spusik\Documents\GitHub\OS-Labs\Windows\Lab1\StaticNumber\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>VectorLibrary.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y /d ""C:\Users\Spusik\Documents\GitHub\OS-Labs\Windows\Lab1\StaticNumber\x64\Debug\VectorLibrary.dll"" "$(OutDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -104,6 +107,9 @@
       <AdditionalLibraryDirectories>C:\Users\Spusik\Documents\GitHub\OS-Labs\Windows\Lab1\StaticNumber\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>VectorLibrary.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y /d ""C:\Users\Spusik\Documents\GitHub\OS-Labs\Windows\Lab1\StaticNumber\x64\Debug\VectorLibrary.dll"" "$(OutDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -119,6 +125,9 @@
       <AdditionalLibraryDirectories>C:\Users\Spusik\Documents\GitHub\OS-Labs\Windows\Lab1\StaticNumber\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>VectorLibrary.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y /d ""C:\Users\Spusik\Documents\GitHub\OS-Labs\Windows\Lab1\StaticNumber\x64\Debug\VectorLibrary.dll"" "$(OutDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -138,6 +147,9 @@
       <AdditionalLibraryDirectories>C:\Users\Spusik\Documents\GitHub\OS-Labs\Windows\Lab1\StaticNumber\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>VectorLibrary.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y /d ""C:\Users\Spusik\Documents\GitHub\OS-Labs\Windows\Lab1\StaticNumber\x64\Debug\VectorLibrary.dll"" "$(OutDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="NumberVectorClient.cpp" />

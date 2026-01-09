@@ -11,31 +11,36 @@ using namespace std;
 
 bool processExists(pid_t pid) {
     if (pid <= 0) return false;
-    
-    string statusPath = "/proc/" + to_string(pid) + "/status";
-    ifstream statusFile(statusPath);
-    
-    if (!statusFile.is_open()) {
+
+    string procPath = "/proc/" + to_string(pid);
+    struct stat st;
+    if (stat(procPath.c_str(), &st) != 0) {
+        return false;
+    }
+
+    string statPath = procPath + "/stat";
+    ifstream statFile(statPath);
+    if (!statFile.is_open()) {
         return false;
     }
     
     string line;
-    while (getline(statusFile, line)) {
-        if (line.compare(0, 6, "State:") == 0) {
-            if (line.find('Z') != string::npos) {
-                return false;
-            }
-            if (kill(pid, 0) == 0 || errno == EPERM) {
-                return true;
-            }
-            return false;
-        }
-    }
+    getline(statFile, line);
+
+    size_t lastParen = line.find_last_of(')');
+    if (lastParen == string::npos) return false;
     
-    return false;
+    stringstream ss(line.substr(lastParen + 1));
+    string stateStr;
+    ss >> stateStr;
+    
+    if (stateStr.empty()) return false;
+    
+    char state = stateStr[0];
+    return !(state == 'Z' || state == 'X' || state == 'x');
 }
 
-pid_t spawnSleepProcess(int seconds = 300) {
+pid_t spawnSleepProcess(int seconds = 5) {
     pid_t pid = fork();
     
     if (pid < 0) {
@@ -45,7 +50,6 @@ pid_t spawnSleepProcess(int seconds = 300) {
     
     if (pid == 0) {
         setsid();
-
         int nullFd = open("/dev/null", O_RDWR);
         if (nullFd != -1) {
             dup2(nullFd, STDIN_FILENO);
@@ -54,9 +58,10 @@ pid_t spawnSleepProcess(int seconds = 300) {
             close(nullFd);
         }
 
-        execl("/bin/sleep", "sleep", to_string(seconds).c_str(), (char*)nullptr);
+        char* argv[] = {(char*)"sleep", (char*)to_string(seconds).c_str(), nullptr};
+        execvp("sleep", argv);
 
-        perror("execl failed");
+        perror("execvp failed");
         _exit(127);
     }
     
@@ -81,7 +86,7 @@ int runKillerWithArgs(const vector<string>& args, int &exitStatus) {
         argv.push_back(nullptr);
 
         execv("./killer", argv.data());
-
+        
         perror("execv failed");
         _exit(127);
     }
@@ -99,17 +104,24 @@ int runKillerWithArgs(const vector<string>& args, int &exitStatus) {
 }
 
 void shortDelay() { 
-    usleep(200000);
+    usleep(500000);
+}
+
+void cleanupZombies(pid_t pid) {
+    if (pid > 0) {
+        int status;
+        waitpid(pid, &status, WNOHANG);
+    }
 }
 
 int main() {
     int exitStatus;
     cout << "=== Process Killer Demo ===\n\n";
-    
+
     cout << "Demo 1: Kill by PID (--id)\n";
     cout << string(40, '-') << "\n";
     
-    pid_t sleepPid1 = spawnSleepProcess(300);
+    pid_t sleepPid1 = spawnSleepProcess(5);
     if (sleepPid1 <= 0) {
         cerr << "Failed to spawn sleep process for demo 1\n";
         return 1;
@@ -125,17 +137,17 @@ int main() {
     runKillerWithArgs({"--id", to_string(sleepPid1)}, exitStatus);
     
     shortDelay();
-    waitpid(sleepPid1, nullptr, 0);
+    cleanupZombies(sleepPid1);
     
     cout << "Process exists after killer: " 
          << (processExists(sleepPid1) ? "YES" : "NO") << "\n";
     cout << "Killer exit status: " << exitStatus << "\n\n";
-    
+
     cout << "Demo 2: Kill by name (--name)\n";
     cout << string(40, '-') << "\n";
     
-    pid_t sleepPid2 = spawnSleepProcess(300);
-    pid_t sleepPid3 = spawnSleepProcess(300);
+    pid_t sleepPid2 = spawnSleepProcess(5);
+    pid_t sleepPid3 = spawnSleepProcess(5);
     
     if (sleepPid2 <= 0 || sleepPid3 <= 0) {
         cerr << "Failed to spawn sleep processes for demo 2\n";
@@ -149,13 +161,13 @@ int main() {
     cout << "Processes exist before killer: "
          << (processExists(sleepPid2) ? "YES" : "NO") << ", "
          << (processExists(sleepPid3) ? "YES" : "NO") << "\n";
-    
+
     cout << "\nRunning: ./killer --name sleep\n";
     runKillerWithArgs({"--name", "sleep"}, exitStatus);
     
     shortDelay();
-    waitpid(sleepPid2, nullptr, 0);
-    waitpid(sleepPid3, nullptr, 0);
+    cleanupZombies(sleepPid2);
+    cleanupZombies(sleepPid3);
     
     cout << "Processes exist after killer: "
          << (processExists(sleepPid2) ? "YES" : "NO") << ", "
@@ -168,8 +180,8 @@ int main() {
     setenv("PROCTOKILL", "sleep", 1);
     cout << "Set PROCTOKILL='sleep'\n";
     
-    pid_t sleepPid4 = spawnSleepProcess(300);
-    pid_t sleepPid5 = spawnSleepProcess(300);
+    pid_t sleepPid4 = spawnSleepProcess(5);
+    pid_t sleepPid5 = spawnSleepProcess(5);
     
     if (sleepPid4 <= 0 || sleepPid5 <= 0) {
         cerr << "Failed to spawn sleep processes for demo 3\n";
@@ -183,13 +195,13 @@ int main() {
     cout << "Processes exist before killer: "
          << (processExists(sleepPid4) ? "YES" : "NO") << ", "
          << (processExists(sleepPid5) ? "YES" : "NO") << "\n";
-    
+
     cout << "\nRunning: ./killer (no arguments, reads PROCTOKILL)\n";
     runKillerWithArgs({}, exitStatus);
     
     shortDelay();
-    waitpid(sleepPid4, nullptr, 0);
-    waitpid(sleepPid5, nullptr, 0);
+    cleanupZombies(sleepPid4);
+    cleanupZombies(sleepPid5);
     
     cout << "Processes exist after killer: "
          << (processExists(sleepPid4) ? "YES" : "NO") << ", "
@@ -202,7 +214,7 @@ int main() {
     setenv("PROCTOKILL", "sleep,nonexistent", 1);
     cout << "Set PROCTOKILL='sleep,nonexistent'\n";
     
-    pid_t sleepPid6 = spawnSleepProcess(300);
+    pid_t sleepPid6 = spawnSleepProcess(5);
     
     if (sleepPid6 <= 0) {
         cerr << "Failed to spawn sleep process for demo 4\n";
@@ -214,17 +226,17 @@ int main() {
     
     cout << "Process exists before killer: "
          << (processExists(sleepPid6) ? "YES" : "NO") << "\n";
-    
+
     cout << "\nRunning: ./killer (no arguments, reads PROCTOKILL)\n";
     runKillerWithArgs({}, exitStatus);
     
     shortDelay();
-    waitpid(sleepPid6, nullptr, 0);
+    cleanupZombies(sleepPid6);
     
     cout << "Process exists after killer: "
          << (processExists(sleepPid6) ? "YES" : "NO") << "\n";
     cout << "Killer exit status: " << exitStatus << "\n\n";
-    
+
     cout << "Cleaning up environment...\n";
     unsetenv("PROCTOKILL");
     

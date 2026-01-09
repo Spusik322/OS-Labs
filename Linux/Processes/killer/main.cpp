@@ -12,6 +12,27 @@ using namespace std;
 
 static pid_t getSelfPid() { return getpid(); }
 
+char getProcessState(pid_t pid) {
+    string statPath = "/proc/" + to_string(pid) + "/stat";
+    ifstream statFile(statPath);
+    if (!statFile.is_open()) return '\0';
+    
+    string line;
+    getline(statFile, line);
+
+    size_t lastParen = line.find_last_of(')');
+    if (lastParen == string::npos) return '\0';
+    
+    stringstream ss(line.substr(lastParen + 1));
+    string stateStr;
+    ss >> stateStr;
+    
+    if (!stateStr.empty()) {
+        return stateStr[0];
+    }
+    return '\0';
+}
+
 string getProcessName(pid_t pid) {
     string commPath = "/proc/" + to_string(pid) + "/comm";
     ifstream commFile(commPath);
@@ -20,7 +41,7 @@ string getProcessName(pid_t pid) {
         getline(commFile, name);
         if (!name.empty()) return name;
     }
-    
+
     string cmdPath = "/proc/" + to_string(pid) + "/cmdline";
     ifstream cmdFile(cmdPath, ios::binary);
     if (!cmdFile.is_open()) return "";
@@ -64,35 +85,12 @@ vector<pid_t> findProcessesByName(const string &name) {
         
         pid_t pid = static_cast<pid_t>(stoi(entry->d_name));
         if (pid <= 1 || pid == self) continue;
-        
+
         string procName = getProcessName(pid);
         if (procName.empty()) continue;
-        
+
         if (procName == name) {
             result.push_back(pid);
-            continue;
-        }
-
-        string cmdPath = "/proc/" + to_string(pid) + "/cmdline";
-        ifstream cmdFile(cmdPath, ios::binary);
-        if (cmdFile.is_open()) {
-            string cmdline;
-            char ch;
-            while (cmdFile.get(ch) && ch != '\0') {
-                cmdline += ch;
-            }
-            
-            if (!cmdline.empty()) {
-                string baseName = cmdline;
-                size_t slash = baseName.find_last_of('/');
-                if (slash != string::npos) {
-                    baseName = baseName.substr(slash + 1);
-                }
-                
-                if (baseName == name) {
-                    result.push_back(pid);
-                }
-            }
         }
     }
     
@@ -106,12 +104,23 @@ vector<pid_t> findProcessesByName(const string &name) {
 
 bool isProcessRunning(pid_t pid) {
     if (pid <= 0) return false;
-    return (kill(pid, 0) == 0 || errno == EPERM);
+
+    if (kill(pid, 0) == 0) {
+
+        char state = getProcessState(pid);
+        return state != 'Z' && state != 'X' && state != 'x' && state != '\0';
+    }
+
+    if (errno == EPERM) {
+        return true;
+    }
+
+    return false;
 }
 
 bool killProcessGracefully(pid_t pid) {
     if (!isProcessRunning(pid)) {
-        cout << "Process " << pid << " is not running\n";
+        cout << "Process " << pid << " is not running or already terminated\n";
         return true;
     }
     
@@ -121,6 +130,8 @@ bool killProcessGracefully(pid_t pid) {
     } else {
         cout << "Terminating process " << pid << "\n";
     }
+    
+    bool killedByTerm = false;
 
     if (kill(pid, SIGTERM) != 0) {
         if (errno == ESRCH) {
@@ -133,84 +144,69 @@ bool killProcessGracefully(pid_t pid) {
 
     for (int i = 0; i < 20; ++i) {
         if (!isProcessRunning(pid)) {
-            cout << "Process " << pid << " terminated gracefully\n";
-            return true;
+            cout << "Process " << pid << " terminated gracefully with SIGTERM\n";
+            killedByTerm = true;
+            break;
         }
         usleep(100000);
     }
 
-    cout << "Sending SIGKILL to process " << pid << "\n";
-    
-    if (kill(pid, SIGKILL) != 0) {
-        if (errno == ESRCH) {
-            cout << "Process " << pid << " terminated after SIGTERM\n";
-            return true;
+    if (!killedByTerm && isProcessRunning(pid)) {
+        cout << "Process still alive, sending SIGKILL to " << pid << "\n";
+        
+        if (kill(pid, SIGKILL) != 0) {
+            if (errno == ESRCH) {
+                cout << "Process " << pid << " terminated after SIGTERM\n";
+                return true;
+            }
+            cerr << "Failed to send SIGKILL: " << strerror(errno) << "\n";
+            return false;
         }
-        cerr << "Failed to send SIGKILL: " << strerror(errno) << "\n";
+
+        usleep(50000);
+
+        if (!isProcessRunning(pid)) {
+            cout << "Process " << pid << " killed with SIGKILL\n";
+            return true;
+        } else {
+            usleep(50000);
+            if (!isProcessRunning(pid)) {
+                cout << "Process " << pid << " killed with SIGKILL\n";
+                return true;
+            }
+        }
+        
+        cerr << "Failed to kill process " << pid << " - still running after SIGKILL\n";
         return false;
     }
     
-    usleep(100000);
-    
-    if (!isProcessRunning(pid)) {
-        cout << "Process " << pid << " killed with SIGKILL\n";
-        return true;
-    }
-    
-    cerr << "Failed to kill process " << pid << "\n";
-    return false;
+    return killedByTerm;
 }
 
 vector<string> splitCommaSeparated(const string &s) {
     vector<string> result;
-    string current;
-    bool inQuotes = false;
-    char quoteChar = 0;
+    stringstream ss(s);
+    string item;
     
-    for (char c : s) {
-        if (inQuotes) {
-            if (c == quoteChar) {
-                inQuotes = false;
-            } else {
-                current += c;
-            }
-        } else {
-            if (c == '\'' || c == '"') {
-                inQuotes = true;
-                quoteChar = c;
-            } else if (c == ',') {
-                if (!current.empty()) {
-                    size_t start = current.find_first_not_of(" \t\r\n");
-                    size_t end = current.find_last_not_of(" \t\r\n");
-                    if (start != string::npos) {
-                        result.push_back(current.substr(start, end - start + 1));
-                    }
-                }
-                current.clear();
-            } else {
-                current += c;
-            }
-        }
-    }
-
-    if (!current.empty()) {
-        size_t start = current.find_first_not_of(" \t\r\n");
-        size_t end = current.find_last_not_of(" \t\r\n");
-        if (start != string::npos) {
-            result.push_back(current.substr(start, end - start + 1));
+    while (getline(ss, item, ',')) {
+        size_t start = item.find_first_not_of(" \t\r\n\"'");
+        size_t end = item.find_last_not_of(" \t\r\n\"'");
+        
+        if (start != string::npos && end != string::npos && end >= start) {
+            result.push_back(item.substr(start, end - start + 1));
         }
     }
     
     return result;
 }
 
-void killByName(const string &name) {
+int killByName(const string &name) {
     cout << "Searching for processes named '" << name << "'\n";
     
     auto pids = findProcessesByName(name);
     if (pids.empty()) {
         cout << "No processes found with name '" << name << "'\n";
-        return;
+        return 0;
     }
     
     cout << "Found " << pids.size() << " process(es):";
@@ -225,6 +221,7 @@ void killByName(const string &name) {
     }
     
     cout << "Successfully terminated " << success << "/" << pids.size() << " processes\n";
+    return success;
 }
 
 int main(int argc, char **argv) {
@@ -290,15 +287,15 @@ int main(int argc, char **argv) {
     }
 
     if (!optName.empty()) {
-        killByName(optName);
-        return 0;
+        int killed = killByName(optName);
+        return (killed > 0) ? 0 : 3;
     }
-    
+
     const char *env = getenv("PROCTOKILL");
     if (!env || env[0] == '\0') {
         cerr << "No arguments provided and PROCTOKILL is not set\n"
              << "Use --help for usage information\n";
-        return 3;
+        return 4;
     }
     
     cout << "Using PROCTOKILL: " << env << "\n";
@@ -306,10 +303,11 @@ int main(int argc, char **argv) {
     
     if (names.empty()) {
         cerr << "PROCTOKILL is empty or malformed\n";
-        return 4;
+        return 5;
     }
     
     int totalFound = 0, totalKilled = 0;
+    bool anyProcessFound = false;
     
     for (const auto &name : names) {
         if (name.empty()) continue;
@@ -322,6 +320,7 @@ int main(int argc, char **argv) {
             continue;
         }
         
+        anyProcessFound = true;
         totalFound += pids.size();
         cout << "  Found " << pids.size() << " process(es):";
         for (pid_t pid : pids) cout << " " << pid;
@@ -335,5 +334,11 @@ int main(int argc, char **argv) {
     }
     
     cout << "\nSummary: Found " << totalFound << " processes, successfully terminated " << totalKilled << "\n";
-    return (totalKilled > 0) ? 0 : 5;
+    
+    if (!anyProcessFound) {
+        cout << "No processes were found to kill\n";
+        return 6;
+    }
+    
+    return (totalKilled > 0) ? 0 : 7;
 }

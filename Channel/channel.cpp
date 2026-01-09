@@ -26,10 +26,12 @@ public:
 
     std::pair<T, bool> Recv() {
         std::unique_lock<std::mutex> lock(mutex_);
-        not_empty_.wait(lock, [this]() { return closed_ || !queue_.empty(); });
-        if (queue_.empty()) {
+        not_empty_.wait(lock, [this]() { return closed_ && queue_.empty() || !queue_.empty(); });
+        
+        if (queue_.empty() && closed_) {
             return std::make_pair(T(), false);
         }
+        
         T value = std::move(queue_.front());
         queue_.pop();
         not_full_.notify_one();
@@ -87,20 +89,22 @@ long long multiplySimple(const std::vector<std::vector<int>>& A,
     return std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 }
 
+std::mutex resultMutex;
+
 void multiplyBlocks(const std::vector<std::vector<int>>& A,
                    const std::vector<std::vector<int>>& B,
                    std::vector<std::vector<int>>& C,
                    const BlockTask& task) {
     int n = static_cast<int>(A.size());
     int startRowA = task.blockRowA * task.blockSize;
-    int endRowA = std::min((task.blockRowA + 1) * task.blockSize, n);
+    int endRowA = std::min(startRowA + task.blockSize, n);
     int startColA = task.blockColA * task.blockSize;
-    int endColA = std::min((task.blockColA + 1) * task.blockSize, n);
+    int endColA = std::min(startColA + task.blockSize, n);
     
     int startRowB = task.blockRowB * task.blockSize;
-    int endRowB = std::min((task.blockRowB + 1) * task.blockSize, n);
+    int endRowB = std::min(startRowB + task.blockSize, n);
     int startColB = task.blockColB * task.blockSize;
-    int endColB = std::min((task.blockColB + 1) * task.blockSize, n);
+    int endColB = std::min(startColB + task.blockSize, n);
     
     for (int i = startRowA; i < endRowA; ++i) {
         for (int j = startColB; j < endColB; ++j) {
@@ -114,6 +118,7 @@ void multiplyBlocks(const std::vector<std::vector<int>>& A,
                 }
             }
             
+            std::lock_guard<std::mutex> lock(resultMutex);
             C[i][j] += sum;
         }
     }
@@ -133,8 +138,8 @@ void workerThread(BufferedChannel<BlockTask>& channel,
 }
 
 int main() {
-    const int n = 2048;
-    const int blockSize = 1024;
+    const int n = 256;
+    const int blockSize = 16;
 
     std::vector<std::vector<int>> A(n, std::vector<int>(n));
     std::vector<std::vector<int>> B(n, std::vector<int>(n));
@@ -176,7 +181,7 @@ int main() {
         if (t.joinable()) {
             t.join();
         }
-    } 
+    }
 
     auto parallelTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::high_resolution_clock::now() - start).count();
@@ -196,7 +201,7 @@ int main() {
 
     std::cout << "Results are " << (correct ? "CORRECT" : "INCORRECT") << std::endl;
 
-    std::ofstream resultsFile("../../results.txt", std::ios_base::app);
+    std::ofstream resultsFile("results.txt", std::ios_base::app);
     if (resultsFile.is_open()) {
         resultsFile << "Matrix: " << n << "x" << n << std::endl
                     << "BlockSize: " << blockSize << std::endl

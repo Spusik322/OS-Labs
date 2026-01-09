@@ -16,38 +16,38 @@ public:
 
     void Send(T value) {
         std::unique_lock<std::mutex> lock(mutex_);
-        cv_.wait(lock, [this]() { return closed_ || queue_.size() < capacity; });
+        not_full_.wait(lock, [this]() { return closed_ || queue_.size() < capacity; });
         if (closed_) {
             throw std::runtime_error("Channel is closed");
         }
         queue_.push(std::move(value));
-        cv_.notify_all();
+        not_empty_.notify_one();
     }
 
     std::pair<T, bool> Recv() {
         std::unique_lock<std::mutex> lock(mutex_);
-        cv_.wait(lock, [this]() { return closed_ || !queue_.empty(); });
-        
-        if (!queue_.empty()) {
-            T value = std::move(queue_.front());
-            queue_.pop();
-            cv_.notify_one();
-            return std::make_pair(std::move(value), true);
+        not_empty_.wait(lock, [this]() { return closed_ || !queue_.empty(); });
+        if (queue_.empty()) {
+            return std::make_pair(T(), false);
         }
-        
-        return std::make_pair(T(), false);
+        T value = std::move(queue_.front());
+        queue_.pop();
+        not_full_.notify_one();
+        return std::make_pair(std::move(value), true);
     }
 
     void Close() {
         std::unique_lock<std::mutex> lock(mutex_);
         closed_ = true;
-        cv_.notify_all();
+        not_empty_.notify_all();
+        not_full_.notify_all();
     }
 
 private:
     std::queue<T> queue_;
     std::mutex mutex_;
-    std::condition_variable cv_;
+    std::condition_variable not_empty_;
+    std::condition_variable not_full_;
     size_t capacity;
     bool closed_ = false;
 };
@@ -133,8 +133,8 @@ void workerThread(BufferedChannel<BlockTask>& channel,
 }
 
 int main() {
-    const int n = 256;
-    const int blockSize = 16;
+    const int n = 2048;
+    const int blockSize = 1024;
 
     std::vector<std::vector<int>> A(n, std::vector<int>(n));
     std::vector<std::vector<int>> B(n, std::vector<int>(n));
